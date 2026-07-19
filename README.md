@@ -67,14 +67,41 @@ The graph's shared state is a typed `TypedDict` (`graph/state.py::GraphState`) w
 - Python 3.11+
 - Docker (optional — enables sandboxed execution; falls back to subprocess without it)
 
-### Setup
+|### Setup
+
+Clone the repo, create a virtual environment, install dependencies, and configure your API keys:
+
+**macOS / Linux:**
 
 ```bash
-git clone https://github.com/<user>/<repo>.git
-cd <repo>
-python -m venv .venv && source .venv/bin/activate
+git clone https://github.com/khalequzzamanlikhon/research2code.git
+cd research2code
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env   # edit with your API keys
+cp .env.example .env   # then edit .env with your API keys
+```
+
+**Windows (Command Prompt / PowerShell):**
+
+```cmd
+git clone https://github.com/khalequzzamanlikhon/research2code.git
+cd research2code
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+copy .env.example .env   :: then edit .env with your API keys
+```
+
+**Windows (Git Bash / MSYS2):**
+
+```bash
+git clone https://github.com/khalequzzamanlikhon/research2code.git
+cd research2code
+python -m venv .venv
+source .venv/Scripts/activate
+pip install -r requirements.txt
+cp .env.example .env   # then edit .env with your API keys
 ```
 
 Only `GROQ_API_KEY` is required. The system falls back to OpenAI (if `OPENAI_API_KEY` is set) or OpenRouter (if `OPENROUTER_API_KEY` is set) when Groq rate-limits or errors.
