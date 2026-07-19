@@ -1,0 +1,23 @@
+version: "3.9"
+
+# Optional: swap the default SQLite checkpointer for Postgres by pointing
+# graph/build_graph.py at this service instead. The `sandbox-image` pull
+# step just ensures the code-execution image is warm before first run.
+services:
+  checkpoint-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: agent
+      POSTGRES_PASSWORD: agent
+      POSTGRES_DB: agent_checkpoints
+    ports:
+      - "5432:5432"
+    volumes:
+      - checkpoint-data:/var/lib/postgresql/data
+
+  sandbox-image:
+    image: python:3.11-slim
+    entrypoint: ["true"]  # just pulls the image; sandbox/executor.py spawns containers from it on demand
+
+volumes:
+  checkpoint-data:

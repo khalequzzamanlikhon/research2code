@@ -1,0 +1,41 @@
+[
+  {
+    "task_id": "fibonacci",
+    "task": "Write a function that returns the nth Fibonacci number using dynamic programming. Include assert-based tests.",
+    "thread_id": "49921794-95a5-4bd8-ab23-d82de95b174e",
+    "started_at": "2026-07-19T10:34:01.234668+00:00",
+    "tests_passed": true,
+    "iterations_used": 1,
+    "human_approved": true,
+    "total_tokens": 901,
+    "duration_seconds": 21.28,
+    "error": null,
+    "final_report_snippet": "# Task Report\n\n**Task:** Write a function that returns the nth Fibonacci number using dynamic programming. Include assert-based tests.\n\n## Research Sources\n\n- **Query:** fibonacci_dynamic.py\n\n  - STUB RESULT (set TAVILY_API_KEY for real search) (https://example.com)\n  No search API key configured. Q"
+  },
+  {
+    "task_id": "lru-cache",
+    "task": "Implement an LRU cache with get() and put() methods. Include assert-based tests.",
+    "thread_id": "03cf5df8-307c-4d0e-b727-8744440ff7bd",
+    "started_at": "2026-07-19T10:34:22.534475+00:00",
+    "tests_passed": true,
+    "iterations_used": 1,
+    "human_approved": true,
+    "total_tokens": 1004,
+    "duration_seconds": 13.23,
+    "error": null,
+    "final_report_snippet": "# Task Report\n\n**Task:** Implement an LRU cache with get() and put() methods. Include assert-based tests.\n\n## Research Sources\n\n- **Query:** cache lru implementation in python\n\n  - STUB RESULT (set TAVILY_API_KEY for real search) (https://example.com)\n  No search API key configured. Query was: 'cach"
+  },
+  {
+    "task_id": "rate-limiter",
+    "task": "Implement a sliding window rate limiter. Include assert-based tests.",
+    "thread_id": "4b9c85af-7fc2-4dcc-a897-13dfc49af0f5",
+    "started_at": "2026-07-19T10:34:35.784895+00:00",
+    "tests_passed": true,
+    "iterations_used": 2,
+    "human_approved": true,
+    "total_tokens": 1773,
+    "duration_seconds": 19.47,
+    "error": null,
+    "final_report_snippet": "# Task Report\n\n**Task:** Implement a sliding window rate limiter. Include assert-based tests.\n\n## Research Sources\n\n- **Query:** \"sliding window rate limiter implementation in Python\"\n\n  - STUB RESULT (set TAVILY_API_KEY for real search) (https://example.com)\n  No search API key configured. Query wa"
+  }
+]
