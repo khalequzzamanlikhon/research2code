@@ -103,3 +103,10 @@ def get_llm(role: str, max_tokens: int = 1000):
         return primary
 
     return primary.with_fallbacks(fallbacks)
+
+
+def get_model_name(role: str) -> str:
+    """Return the primary model name for a role (for cost tracking)."""
+    if role not in ROLE_MODELS:
+        raise ValueError(f"Unknown role {role!r}; expected one of {list(ROLE_MODELS)}")
+    return ROLE_MODELS[role]["groq"]
