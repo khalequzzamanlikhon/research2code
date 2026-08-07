@@ -11,6 +11,10 @@
 A typed, checkpointed, multi-agent pipeline that researches, implements, tests, and reports on coding tasks — with a human veto before anything touches disk.
 </p>
 
+<p align="center">
+  <img src="demo.gif" alt="Demo" width="720">
+</p>
+
 ---
 
 ## What It Does
@@ -67,7 +71,7 @@ The graph's shared state is a typed `TypedDict` (`graph/state.py::GraphState`) w
 - Python 3.11+
 - Docker (optional — enables sandboxed execution; falls back to subprocess without it)
 
-|### Setup
+### Setup
 
 Clone the repo, create a virtual environment, install dependencies, and configure your API keys:
 
@@ -157,10 +161,9 @@ All three checks require zero credentials, so external contributors can validate
 
 ## Limitations
 
-- Single-file code generation only — no multi-file scaffolding
 - No A2A protocol support — agents communicate with MCP tool servers only, not with other agent systems
-- No persistent package cache in the Docker sandbox — `pip install` runs fresh on every execution
-- Token tracking uses model-level estimates rather than per-call provider SDK counts
+- No persistent package cache in the Docker sandbox — `pip install` runs fresh on every execution (mitigated: persistent pip cache via volume mount `$AGENT_PIP_CACHE_DIR`, custom image via `$AGENT_SANDBOX_IMAGE`)
+- Token tracking uses per-model pricing table (`tools/token_tracker.py`) with dollar-cost calculation in final report
 
 ---
 
