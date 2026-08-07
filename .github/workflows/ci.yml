@@ -19,8 +19,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install ruff mypy
       - name: Check imports
         run: python -c "from graph.state import GraphState, new_state; print('state module OK')"
+      - name: Lint
+        run: ruff check .
+      - name: Type check
+        run: mypy graph/ tools/ sandbox/ mcp_servers/ --ignore-missing-imports
       - name: Run tests
         run: python -m pytest tests/ -v --tb=short
       - name: Verify graph compiles
