@@ -14,13 +14,22 @@ with a `Command(resume=...)` payload containing the human's decision.
 
 from __future__ import annotations
 
-import asyncio
 from datetime import datetime, timezone
 
 from langgraph.types import interrupt
 
 from graph.state import GraphState, HistoryEvent
+from tools.async_utils import run_async
 from tools.mcp_client import SERVERS, MCPToolClient
+
+
+async def _write_approved_files(files: dict[str, str]) -> str:
+    results = []
+    async with MCPToolClient(SERVERS["filesystem"]) as fs:
+        for filename, content in files.items():
+            r = await fs.call("write_file", path=filename, content=content)
+            results.append(r)
+    return "; ".join(results)
 
 
 async def _write_approved_code(code: str) -> str:
@@ -31,16 +40,20 @@ async def _write_approved_code(code: str) -> str:
 def human_approval_node(state: GraphState) -> dict:
     last_result = state["test_results"][-1] if state.get("test_results") else None
 
-    # `interrupt(...)` pauses the graph here and surfaces this payload to
-    # whatever is driving execution (Streamlit app / CLI). The graph will
-    # not proceed past this line until it's re-invoked with Command(resume=decision).
-    decision = interrupt(
-        {
-            "question": "Approve writing this code to disk?",
-            "code": state["generated_code"],
-            "last_test_result": last_result,
-        }
-    )
+    # Build interrupt payload — include all files in multi-file mode
+    interrupt_payload: dict = {
+        "question": "Approve writing this code to disk?",
+        "last_test_result": last_result,
+    }
+    is_multi_file = bool(state.get("generated_files") and state.get("entrypoint"))
+    if is_multi_file:
+        interrupt_payload["files"] = state["generated_files"]
+        interrupt_payload["entrypoint"] = state["entrypoint"]
+        interrupt_payload["code"] = state.get("generated_code", "")  # fallback for frontends
+    else:
+        interrupt_payload["code"] = state["generated_code"]
+
+    decision = interrupt(interrupt_payload)
 
     approved = bool(decision.get("approved"))
     feedback = decision.get("feedback")
@@ -55,7 +68,10 @@ def human_approval_node(state: GraphState) -> dict:
     ]
 
     if approved:
-        write_result = asyncio.run(_write_approved_code(state["generated_code"]))
+        if is_multi_file:
+            write_result = run_async(_write_approved_files(state["generated_files"]))
+        else:
+            write_result = run_async(_write_approved_code(state["generated_code"]))
         history.append(
             HistoryEvent(node="human_approval", summary=write_result, timestamp=datetime.now(timezone.utc).isoformat())
         )

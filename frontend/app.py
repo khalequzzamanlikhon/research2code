@@ -21,6 +21,9 @@ load_dotenv()
 
 from graph.build_graph import build_graph  # noqa: E402
 from graph.state import new_state  # noqa: E402
+from observability.tracing_setup import enable_tracing  # noqa: E402
+
+enable_tracing()
 
 st.set_page_config(page_title="Research → Code → Review", layout="wide")
 st.title("Research → Code → Review Agent Pipeline")
@@ -31,6 +34,8 @@ if "thread_id" not in st.session_state:
     st.session_state.thread_id = None
 if "awaiting_approval" not in st.session_state:
     st.session_state.awaiting_approval = None
+if "final_report" not in st.session_state:
+    st.session_state.final_report = None
 
 app = st.session_state.app
 
@@ -59,7 +64,16 @@ if st.session_state.awaiting_approval:
     st.warning("Human approval required before writing code to disk / executing further.")
     if payload.get("last_test_result"):
         st.write("Last test result:", payload["last_test_result"])
-    st.code(payload["code"], language="python")
+
+    # Multi-file display
+    if payload.get("files"):
+        st.caption(f"Multi-file project — entrypoint: `{payload.get('entrypoint', '?')}`")
+        tabs = st.tabs(sorted(payload["files"].keys()))
+        for tab, fname in zip(tabs, sorted(payload["files"].keys())):
+            with tab:
+                st.code(payload["files"][fname], language="python")
+    else:
+        st.code(payload.get("code", ""), language="python")
 
     feedback = st.text_input("Feedback (optional)")
     col1, col2 = st.columns(2)

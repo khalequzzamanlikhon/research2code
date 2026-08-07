@@ -15,11 +15,16 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from graph.state import GraphState, HistoryEvent, TestResult
-from sandbox.executor import run_python_code
+from sandbox.executor import run_python_code, run_python_project
 
 
 def reviewer_node(state: GraphState) -> dict:
-    result = run_python_code(state["generated_code"])
+    # Multi-file mode
+    if state.get("generated_files") and state.get("entrypoint"):
+        result = run_python_project(state["generated_files"], state["entrypoint"])
+    else:
+        # Single-file mode (backward compatible)
+        result = run_python_code(state["generated_code"])
 
     test_result = TestResult(
         passed=result.passed,

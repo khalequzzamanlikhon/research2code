@@ -23,8 +23,10 @@ from langgraph.types import Command
 
 from graph.build_graph import build_graph
 from graph.state import new_state
+from observability.tracing_setup import enable_tracing
 
 load_dotenv()  # picks up a local .env file if present; no-op if it doesn't exist
+enable_tracing()
 
 
 def _print_interrupt(interrupt_payload: dict) -> None:
@@ -34,8 +36,18 @@ def _print_interrupt(interrupt_payload: dict) -> None:
     print(interrupt_payload["question"])
     if interrupt_payload.get("last_test_result"):
         print("\nLast test result:", interrupt_payload["last_test_result"])
-    print("\n--- Proposed code ---")
-    print(interrupt_payload["code"])
+
+    # Multi-file display
+    if interrupt_payload.get("files"):
+        print(f"\n--- Proposed files (entrypoint: {interrupt_payload.get('entrypoint', '?')}) ---")
+        for fname, fcontent in interrupt_payload["files"].items():
+            print(f"\n{'─' * 40}")
+            print(f"  {fname}")
+            print(f"{'─' * 40}")
+            print(fcontent)
+    else:
+        print("\n--- Proposed code ---")
+        print(interrupt_payload.get("code", ""))
     print("=" * 60)
 
 
