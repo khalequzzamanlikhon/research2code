@@ -42,7 +42,12 @@ class GraphState(TypedDict, total=False):
 
     # --- coder output ------------------------------------------------------
     generated_code: str
+    generated_files: dict[str, str]  # multi-file: filename → content
+    entrypoint: str  # multi-file: which file to execute (e.g. "main.py")
     code_language: str
+
+    # --- evaluator output ----------------------------------------------------
+    evaluation_scores: Annotated[list[dict], add]
 
     # --- reviewer output -----------------------------------------------------
     test_results: Annotated[list[TestResult], add]

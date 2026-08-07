@@ -16,6 +16,7 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, StateGraph
 
 from graph.nodes.coder import coder_node
+from graph.nodes.evaluator import evaluator_node
 from graph.nodes.final_report import final_report_node
 from graph.nodes.human_approval import human_approval_node
 from graph.nodes.researcher import researcher_node
@@ -31,6 +32,7 @@ def build_graph(checkpoint_path: str = CHECKPOINT_DB):
 
     graph.add_node("researcher", researcher_node)
     graph.add_node("coder", coder_node)
+    graph.add_node("evaluator", evaluator_node)
     graph.add_node("reviewer", reviewer_node)
     graph.add_node("human_approval", human_approval_node)
     graph.add_node("final_report", final_report_node)
@@ -39,7 +41,8 @@ def build_graph(checkpoint_path: str = CHECKPOINT_DB):
 
     # Linear parts of the pipeline -- these always happen in this order.
     graph.add_edge("researcher", "coder")
-    graph.add_edge("coder", "reviewer")
+    graph.add_edge("coder", "evaluator")
+    graph.add_edge("evaluator", "reviewer")
 
     # The one real branch point: pass, fail-but-retry, or fail-out-of-retries.
     graph.add_conditional_edges(
