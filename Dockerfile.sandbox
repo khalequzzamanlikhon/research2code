@@ -1,0 +1,19 @@
+# Sandbox image with common Python packages pre-installed.
+# Build: docker build -t agent-sandbox:latest -f Dockerfile.sandbox .
+# The sandbox executor uses this image if AGENT_SANDBOX_IMAGE is set.
+FROM python:3.11-slim
+
+# Pre-install commonly needed packages so generated code doesn't need
+# a fresh `pip install` on every sandbox execution.
+RUN pip install --no-cache-dir \
+    numpy~=1.26 \
+    requests~=2.31 \
+    pytest~=8.0 \
+    && rm -rf /root/.cache/pip
+
+# Keep pip cache dir available for additional installs at runtime
+ENV PIP_CACHE_DIR=/pip-cache
+RUN mkdir -p /pip-cache && chmod 777 /pip-cache
+
+# Default entrypoint: run a Python script
+ENTRYPOINT ["python"]

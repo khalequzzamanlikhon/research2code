@@ -11,15 +11,22 @@ function says so loudly rather than pretending it's equally safe.
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import tempfile
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 
-DOCKER_IMAGE = "python:3.11-slim"
+# Custom sandbox image (pre-built with common packages) or vanilla python slim.
+# Set AGENT_SANDBOX_IMAGE=agent-sandbox:latest to use the Dockerfile.sandbox image.
+DOCKER_IMAGE = os.environ.get("AGENT_SANDBOX_IMAGE", "python:3.11-slim")
 TIMEOUT_SECONDS = 20
 MEMORY_LIMIT = "256m"
+# Persistent pip cache dir on the host — avoids fresh downloads every run.
+PIP_CACHE_DIR = os.environ.get("AGENT_PIP_CACHE_DIR",
+    str(Path.home() / ".cache" / "agent-pip-cache"))
 
 
 @dataclass
@@ -31,8 +38,9 @@ class ExecutionResult:
     used_docker: bool
 
 
+@lru_cache(maxsize=1)
 def _docker_available() -> bool:
-    """Check if Docker is installed AND the daemon is actually running."""
+    """Check if Docker is installed AND the daemon is actually running. Result is memoized — runs docker info only once per process."""
     if shutil.which("docker") is None:
         return False
     try:
@@ -64,13 +72,40 @@ def run_python_code(code: str, test_code: str | None = None) -> ExecutionResult:
         return _run_in_subprocess(script_path)
 
 
+def run_python_project(files: dict[str, str], entrypoint: str) -> ExecutionResult:
+    """Write multiple files to a temp dir and execute the entrypoint in the sandbox.
+
+    All files are written BEFORE the container starts, so the :ro mount
+    (read-only inside container) remains secure. The entrypoint is the file
+    passed to `python` for execution.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        for filename, content in files.items():
+            filepath = tmp_path / filename
+            filepath.parent.mkdir(parents=True, exist_ok=True)
+            filepath.write_text(content, encoding="utf-8")
+
+        script_path = tmp_path / entrypoint
+        if not script_path.exists():
+            return ExecutionResult(False, "", f"Entrypoint '{entrypoint}' not found in generated files", -1, False)
+
+        if _docker_available():
+            return _run_in_docker(script_path, tmp)
+        return _run_in_subprocess(script_path)
+
+
 def _run_in_docker(script_path: Path, host_dir: str) -> ExecutionResult:
+    # Ensure pip cache dir exists on host so Docker can mount it
+    Path(PIP_CACHE_DIR).mkdir(parents=True, exist_ok=True)
     cmd = [
         "docker", "run", "--rm",
         "--network", "none",
         "--memory", MEMORY_LIMIT,
         "--cpus", "1",
         "-v", f"{host_dir}:/sandbox:ro",
+        "-v", f"{PIP_CACHE_DIR}:/pip-cache",
+        "-e", "PIP_CACHE_DIR=/pip-cache",
         DOCKER_IMAGE,
         "python", f"/sandbox/{script_path.name}",
     ]
