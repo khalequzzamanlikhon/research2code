@@ -8,11 +8,11 @@ model is a deliberate cost decision worth calling out in the README.
 
 from __future__ import annotations
 
-import asyncio
 from datetime import datetime, timezone
 
 from graph.state import GraphState, HistoryEvent, ResearchNote
-from tools.llm_provider import get_llm
+from tools.async_utils import run_async
+from tools.llm_provider import get_llm, get_model_name
 from tools.mcp_client import SERVERS, MCPToolClient
 
 SYSTEM_PROMPT = """You are a technical researcher. Given a coding/research task, \
@@ -35,7 +35,9 @@ async def _gather_research(task: str) -> tuple[list[ResearchNote], dict]:
 
 
 def researcher_node(state: GraphState) -> dict:
-    notes, usage = asyncio.run(_gather_research(state["task"]))
+    notes, usage = run_async(_gather_research(state["task"]))
+    if usage:
+        usage["model_name"] = get_model_name("researcher")
     return {
         "research_notes": notes,
         "token_usage": [{"node": "researcher", **usage}] if usage else [],
