@@ -14,7 +14,7 @@ with a `Command(resume=...)` payload containing the human's decision.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from langgraph.types import interrupt
 
@@ -63,7 +63,7 @@ def human_approval_node(state: GraphState) -> dict:
             node="human_approval",
             summary=f"Human {'approved' if approved else 'rejected'} the code."
             + (f" Feedback: {feedback}" if feedback else ""),
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
         )
     ]
 
@@ -73,7 +73,7 @@ def human_approval_node(state: GraphState) -> dict:
         else:
             write_result = run_async(_write_approved_code(state["generated_code"]))
         history.append(
-            HistoryEvent(node="human_approval", summary=write_result, timestamp=datetime.now(timezone.utc).isoformat())
+            HistoryEvent(node="human_approval", summary=write_result, timestamp=datetime.now(UTC).isoformat())
         )
         return {"approval_status": "approved", "approval_feedback": feedback, "history": history, "next_node": "final_report"}
 

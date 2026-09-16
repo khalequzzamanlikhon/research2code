@@ -46,7 +46,7 @@ class MCPToolClient:
         self._session: ClientSession | None = None
         self._stack = contextlib.AsyncExitStack()
 
-    async def __aenter__(self) -> "MCPToolClient":
+    async def __aenter__(self) -> MCPToolClient:
         params = StdioServerParameters(command=self.spec.command, args=self.spec.args)
         read, write = await self._stack.enter_async_context(stdio_client(params))
         self._session = await self._stack.enter_async_context(ClientSession(read, write))
@@ -71,7 +71,7 @@ class MCPToolClient:
             if getattr(block, "type", None) == "text":
                 chunks.append(block.text)
             else:
-                chunks.append(json.dumps(getattr(block, "model_dump", lambda: str(block))()))
+                chunks.append(json.dumps(getattr(block, "model_dump", lambda b=block: str(b))()))
         return "\n".join(chunks)
 
 

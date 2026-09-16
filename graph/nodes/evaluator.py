@@ -12,7 +12,7 @@ uses a cheaper model (same as researcher) to keep costs low.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from graph.state import GraphState, HistoryEvent
 from tools.llm_provider import get_llm, get_model_name
@@ -50,7 +50,7 @@ def evaluator_node(state: GraphState) -> dict:
                 HistoryEvent(
                     node="evaluator",
                     summary="Skipped — no generated code to evaluate.",
-                    timestamp=datetime.now(timezone.utc).isoformat(),
+                    timestamp=datetime.now(UTC).isoformat(),
                 )
             ],
             "next_node": "reviewer",
@@ -89,7 +89,7 @@ def evaluator_node(state: GraphState) -> dict:
                     if "overall" in scores
                     else "Evaluation completed (see report for scores)."
                 ),
-                timestamp=datetime.now(timezone.utc).isoformat(),
+                timestamp=datetime.now(UTC).isoformat(),
             )
         ],
         "next_node": "reviewer",

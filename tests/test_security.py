@@ -57,6 +57,7 @@ def temp_workdir():
         os.environ["AGENT_SANDBOX_DIR"] = tmp
         # Re-import to pick up the new WORKDIR
         import importlib
+
         import mcp_servers.filesystem_server as fs_mod
 
         importlib.reload(fs_mod)

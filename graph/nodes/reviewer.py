@@ -12,7 +12,7 @@ their own successors.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from graph.state import GraphState, HistoryEvent, TestResult
 from sandbox.executor import run_python_code, run_python_project
@@ -41,7 +41,7 @@ def reviewer_node(state: GraphState) -> dict:
         "test_results": [test_result],
         "iteration_count": state.get("iteration_count", 0) + 1,
         "history": [
-            HistoryEvent(node="reviewer", summary=summary, timestamp=datetime.now(timezone.utc).isoformat())
+            HistoryEvent(node="reviewer", summary=summary, timestamp=datetime.now(UTC).isoformat())
         ],
         "next_node": "supervisor",
     }

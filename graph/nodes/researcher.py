@@ -8,7 +8,7 @@ model is a deliberate cost decision worth calling out in the README.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from graph.state import GraphState, HistoryEvent, ResearchNote
 from tools.async_utils import run_async
@@ -45,7 +45,7 @@ def researcher_node(state: GraphState) -> dict:
             HistoryEvent(
                 node="researcher",
                 summary=f"Ran {len(notes)} search queries.",
-                timestamp=datetime.now(timezone.utc).isoformat(),
+                timestamp=datetime.now(UTC).isoformat(),
             )
         ],
         "next_node": "coder",

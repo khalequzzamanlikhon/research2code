@@ -69,7 +69,7 @@ if st.session_state.awaiting_approval:
     if payload.get("files"):
         st.caption(f"Multi-file project — entrypoint: `{payload.get('entrypoint', '?')}`")
         tabs = st.tabs(sorted(payload["files"].keys()))
-        for tab, fname in zip(tabs, sorted(payload["files"].keys())):
+        for tab, fname in zip(tabs, sorted(payload["files"].keys()), strict=True):
             with tab:
                 st.code(payload["files"][fname], language="python")
     else:

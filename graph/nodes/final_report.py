@@ -10,14 +10,14 @@ of human interventions. This is the artifact a non-technical reviewer
 from __future__ import annotations
 
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from graph.state import GraphState, HistoryEvent
 from tools.token_tracker import calculate_cost, format_cost
 
 
 def _render_report(state: GraphState) -> str:
-    lines = [f"# Task Report\n", f"**Task:** {state['task']}\n"]
+    lines = ["# Task Report\n", f"**Task:** {state['task']}\n"]
 
     lines.append("## Research Sources\n")
     for note in state.get("research_notes", []):
@@ -87,8 +87,8 @@ def _render_report(state: GraphState) -> str:
             total_cost += cost
             per_node.append((entry.get("node", "?"), model, tok_total, cost))
 
-        lines.append(f"| Metric | Value |")
-        lines.append(f"|--------|-------|")
+        lines.append("| Metric | Value |")
+        lines.append("|--------|-------|")
         lines.append(f"| **Total input tokens** | {total_in:,} |")
         lines.append(f"| **Total output tokens** | {total_out:,} |")
         lines.append(f"| **Total tokens consumed** | {total_total:,} |")
@@ -96,8 +96,8 @@ def _render_report(state: GraphState) -> str:
         lines.append(f"| **Estimated cost** | {format_cost(total_cost)} |")
         lines.append("")
         lines.append("### Per-Node Breakdown\n")
-        lines.append(f"| Node | Model | Tokens | Cost |")
-        lines.append(f"|------|-------|--------|------|")
+        lines.append("| Node | Model | Tokens | Cost |")
+        lines.append("|------|-------|--------|------|")
         for node, model, tok, cost in per_node:
             lines.append(f"| {node} | {model} | {tok:,} | {format_cost(cost)} |")
         lines.append("")
@@ -108,7 +108,7 @@ def _render_report(state: GraphState) -> str:
 def final_report_node(state: GraphState) -> dict:
     report = _render_report(state)
 
-    out_path = f"reports/report_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.md"
+    out_path = f"reports/report_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}.md"
     try:
         import os
 
@@ -121,6 +121,6 @@ def final_report_node(state: GraphState) -> dict:
     return {
         "final_report": report,
         "history": [
-            HistoryEvent(node="final_report", summary=f"Report written to {out_path}", timestamp=datetime.now(timezone.utc).isoformat())
+            HistoryEvent(node="final_report", summary=f"Report written to {out_path}", timestamp=datetime.now(UTC).isoformat())
         ],
     }

@@ -14,7 +14,7 @@ which mode to use based on the task complexity.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from graph.state import GraphState, HistoryEvent
 from tools.llm_provider import get_llm, get_model_name
@@ -126,7 +126,7 @@ def coder_node(state: GraphState) -> dict:
             "generated_code": json.dumps(multi_files),  # fallback serialization
             "generated_files": multi_files,
             "entrypoint": entrypoint,
-            "history": [HistoryEvent(node="coder", summary=summary, timestamp=datetime.now(timezone.utc).isoformat())],
+            "history": [HistoryEvent(node="coder", summary=summary, timestamp=datetime.now(UTC).isoformat())],
             "token_usage": [{"node": "coder", **usage}] if usage else [],
             "next_node": "evaluator",
         }
@@ -140,7 +140,7 @@ def coder_node(state: GraphState) -> dict:
                 node="coder",
                 summary=f"Generated {len(code.splitlines())} lines of code "
                 f"(iteration {state.get('iteration_count', 0)}).",
-                timestamp=datetime.now(timezone.utc).isoformat(),
+                timestamp=datetime.now(UTC).isoformat(),
             )
         ],
         "token_usage": [{"node": "coder", **usage}] if usage else [],

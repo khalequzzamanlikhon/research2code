@@ -14,11 +14,10 @@ Usage:
 from __future__ import annotations
 
 import json
-import os
 import sys
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -194,7 +193,7 @@ def run_single_task(task_def: dict[str, Any]) -> dict[str, Any]:
         "task_id": task_id,
         "task": task_text,
         "thread_id": thread_id,
-        "started_at": datetime.now(timezone.utc).isoformat(),
+        "started_at": datetime.now(UTC).isoformat(),
         "tests_passed": False,
         "reference_tests_passed": False,
         "reference_test_output": "",
@@ -213,7 +212,6 @@ def run_single_task(task_def: dict[str, Any]) -> dict[str, Any]:
         # Handle possible interrupt at human_approval
         app_state = app.get_state(config)
         if app_state.next and "human_approval" in app_state.next:
-            interrupt_val = app_state.tasks[0].interrupts[0].value
             # Auto-approve for benchmarking (we want end-to-end completion)
             output = app.invoke(Command(resume={"approved": True, "feedback": None}), config=config)
 
@@ -254,7 +252,6 @@ def run_single_task(task_def: dict[str, Any]) -> dict[str, Any]:
                 )[:500]
 
         status = "✅" if result["tests_passed"] else "❌"
-        ref_status = "✅" if result["reference_tests_passed"] else "❌"
         print(f"\n{status} Self-test: passed={result['tests_passed']}, "
               f"ref-test: passed={result['reference_tests_passed']}, "
               f"iterations={result['iterations_used']}, "
@@ -284,7 +281,7 @@ def generate_report(results: list[dict[str, Any]]) -> str:
     lines = [
         "# Agent Pipeline Benchmark Report",
         "",
-        f"**Date:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}",
+        f"**Date:** {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S UTC')}",
         f"**Tasks run:** {total}",
         f"**Max iterations per task:** {MAX_ITERATIONS}",
         "",
