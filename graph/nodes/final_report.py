@@ -73,7 +73,7 @@ def _render_report(state: GraphState) -> str:
         lines.append("\n## Token / Cost Summary\n")
         total_in = total_out = total_total = 0
         total_cost = 0.0
-        per_node: list[tuple[str, str, int, int, float]] = []
+        per_node: list[tuple[str, str, int, float]] = []
         for entry in state["token_usage"]:
             meta = {k: v for k, v in entry.items() if k != "node"}
             in_tok = meta.get("input_tokens", 0) or 0

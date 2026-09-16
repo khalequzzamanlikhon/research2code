@@ -10,8 +10,9 @@ from graph.build_graph import build_graph
 from graph.state import new_state
 
 app = build_graph()
-print(f"Graph compiled: {len(app.nodes)} nodes")
-print(f"Edges: {len(app.edges)}")
+drawable = app.get_graph()
+print(f"Graph compiled: {len(drawable.nodes)} nodes")
+print(f"Edges: {len(drawable.edges)}")
 
 state = new_state("CI verification task")
 assert state["task"] == "CI verification task"

@@ -54,7 +54,7 @@ def _optional_openai(model: str, max_tokens: int):
         print("[llm_provider] langchain-openai not installed; skipping OpenAI fallback. "
               "Install with: pip install langchain-openai")
         return None
-    return ChatOpenAI(model=model, max_tokens=max_tokens)
+    return ChatOpenAI(model=model, max_completion_tokens=max_tokens)
 
 
 def _optional_openrouter(model: str, max_tokens: int):
@@ -62,15 +62,16 @@ def _optional_openrouter(model: str, max_tokens: int):
         return None
     try:
         from langchain_openai import ChatOpenAI
+        from pydantic import SecretStr
     except ImportError:
         print("[llm_provider] langchain-openai not installed; skipping OpenRouter fallback. "
               "Install with: pip install langchain-openai")
         return None
     return ChatOpenAI(
         model=model,
-        max_tokens=max_tokens,
-        openai_api_key=os.environ["OPENROUTER_API_KEY"],
-        openai_api_base="https://openrouter.ai/api/v1",
+        max_completion_tokens=max_tokens,
+        api_key=SecretStr(os.environ["OPENROUTER_API_KEY"]),
+        base_url="https://openrouter.ai/api/v1",
     )
 
 

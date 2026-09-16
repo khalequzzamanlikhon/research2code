@@ -19,6 +19,7 @@ from typing import Any
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+from mcp.types import TextContent
 
 
 @dataclass
@@ -49,8 +50,9 @@ class MCPToolClient:
     async def __aenter__(self) -> MCPToolClient:
         params = StdioServerParameters(command=self.spec.command, args=self.spec.args)
         read, write = await self._stack.enter_async_context(stdio_client(params))
-        self._session = await self._stack.enter_async_context(ClientSession(read, write))
-        await self._session.initialize()
+        session = await self._stack.enter_async_context(ClientSession(read, write))
+        await session.initialize()
+        self._session = session
         return self
 
     async def __aexit__(self, *exc_info: Any) -> None:
@@ -68,7 +70,7 @@ class MCPToolClient:
         # MCP tool results are a list of content blocks; flatten text blocks.
         chunks = []
         for block in result.content:
-            if getattr(block, "type", None) == "text":
+            if isinstance(block, TextContent):
                 chunks.append(block.text)
             else:
                 chunks.append(json.dumps(getattr(block, "model_dump", lambda b=block: str(b))()))

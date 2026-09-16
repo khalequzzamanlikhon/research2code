@@ -63,4 +63,5 @@ def build_graph(checkpoint_path: str = CHECKPOINT_DB):
 def get_graph_png(checkpoint_path: str = CHECKPOINT_DB) -> bytes:
     """Export the compiled graph as a PNG for the README architecture diagram."""
     compiled = build_graph(checkpoint_path)
-    return compiled.get_graph().draw_mermaid_png()
+    png: bytes = compiled.get_graph().draw_mermaid_png()
+    return png
