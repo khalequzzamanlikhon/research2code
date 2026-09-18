@@ -1,37 +1,39 @@
+<h1 align="center">Research → Code → Review</h1>
+
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/python-3.11%2B-3776AB?style=flat-square&logo=python">
-  <img alt="LangGraph" src="https://img.shields.io/badge/langgraph-^0.2.60-1a1a2e?style=flat-square&logo=langchain">
-  <img alt="MCP" src="https://img.shields.io/badge/MCP-Model%20Context%20Protocol-8B5CF6?style=flat-square&logo=protocol">
-  <img alt="CI" src="https://img.shields.io/badge/CI-passing-3DA639?style=flat-square&logo=githubactions">
+  <img alt="LangGraph" src="https://img.shields.io/badge/langgraph-^0.2.60-1a1a2e?style=flat-square">
+  <img alt="MCP" src="https://img.shields.io/badge/MCP-Model%20Context%20Protocol-8B5CF6?style=flat-square">
+  <a href="https://github.com/khalequzzamanlikhon/research2code/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/khalequzzamanlikhon/research2code/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="License" src="https://img.shields.io/badge/license-MIT-3DA639?style=flat-square">
 </p>
 
-<h1 align="center">Research → Code → Review</h1>
-<p align="center">
-A typed, checkpointed, multi-agent pipeline that researches, implements, tests, and reports on coding tasks — with a human veto before anything touches disk.
-</p>
+I built this to see how far a small team of LLM agents can take a coding task on its
+own, while keeping a person in control. You give it a task in plain English. One agent
+looks things up, one writes the code with tests, one runs the tests in a sandbox, and
+nothing is written to disk until a human approves it.
 
 <p align="center">
   <img src="demo.gif" alt="Demo" width="720">
 </p>
 
----
+## What it does
 
-## What It Does
+1. **Researcher:** writes search queries and collects results through an MCP
+   docs-search server.
+2. **Coder:** turns the research into self-contained Python code with assert-based tests.
+3. **Reviewer:** runs the code in a Docker sandbox (no network, 256 MB RAM, 20 s
+   timeout) and records whether the tests passed.
+4. **Human approval:** the graph pauses with `interrupt()`; no code is written to disk
+   until a person approves.
+5. **Final report:** collects the research notes, code, test results, approval history
+   and token usage into one markdown report.
 
-Given a natural-language task, the system autonomously runs through five stages:
+If the tests fail, the coder gets the failure output and tries again, up to a set
+number of retries. If it runs out of retries, the task goes to the human with the
+failing state instead of looping forever.
 
-1. **Researcher** — generates targeted search queries and collects results via an MCP docs-search server
-2. **Coder** — synthesizes research into self-contained Python code with inline assertions
-3. **Reviewer** — executes the generated code inside a Docker sandbox (no network, 256 MB RAM limit, 20 s timeout) and records pass/fail
-4. **Human Approval** — the graph pauses via `interrupt()`; no code is written to disk until a human approves
-5. **Final Report** — assembles research notes, code, test results, approval history, and token usage into a structured markdown report
-
-If tests fail, the coder receives the failure output and retries (up to a configurable bound). If the retry budget is exhausted, the pipeline escalates to the human with the failing state rather than looping indefinitely.
-
----
-
-## Architecture
+## How it's built
 
 ```mermaid
 flowchart LR
@@ -44,36 +46,30 @@ flowchart LR
     H -->|reject| F
 ```
 
-All routing logic lives in a single pure-Python function (`graph/supervisor.py::route_after_review`). The only branch point is evaluation of test pass/fail against a retry counter — no LLM "decides" the next step.
+I kept all the routing in one plain Python function
+(`graph/supervisor.py::route_after_review`). The only decision is whether the tests
+passed and how many retries are left; no LLM decides what happens next, so the flow is
+predictable and easy to test.
 
-### State Model
+The shared state is a typed `TypedDict` (`graph/state.py::GraphState`) with fields for
+the research notes, code, test results, iteration count, approval status, history and
+token usage. Every node reads and writes this one schema, so a structural mistake shows
+up at import time instead of halfway through a run.
 
-The graph's shared state is a typed `TypedDict` (`graph/state.py::GraphState`) with explicit fields for research notes, generated code, test results, iteration count, approval status, execution history, and token usage. Every node reads from and writes to this schema — the type system catches structural mismatches at import time rather than runtime.
+## Design choices
 
----
+| Choice | How | Why |
+|---|---|---|
+| Tools over MCP | The `mcp` Python SDK | Each MCP server is a separate process talking JSON-RPC over stdio, so I can swap a server, even for one in another language, without touching the agents. |
+| Isolated execution | Docker (`python:3.11-slim`, `--network none`, `--memory 256m`) | Generated code never runs inside the app or on the host. Without Docker it falls back to a subprocess with a timeout, and logs a warning that isolation is weaker. |
+| Checkpoints | SQLite `SqliteSaver` | Every step is saved, so an interrupted run resumes with `--resume <thread_id>`. `docker-compose.yml` has a Postgres option. |
+| Provider fallback | Groq, then OpenAI, then OpenRouter | Each LLM call uses LangChain's `.with_fallbacks()`, and only the providers you have keys for are added. |
+| A model per role | Environment-variable overrides | The researcher uses a cheaper model (e.g. Llama 3.1 8B), the coder a stronger one (e.g. Llama 3.3 70B). Set with `CODER_MODEL_GROQ`, `RESEARCHER_MODEL_OPENAI`, and so on. |
 
-## Key Design Decisions
+## Quick start
 
-| Decision | Implementation | Rationale |
-|----------|---------------|-----------|
-| **Tool discovery** | Model Context Protocol (MCP) via `mcp` Python SDK | MCP servers are independent processes communicating over JSON-RPC/stdio. Swapping a server for a different implementation — even in another language — requires no agent code changes. |
-| **Code isolation** | Docker container (`python:3.11-slim`, `--network none`, `--memory 256m`) | Generated code never runs in-process or on the host. Falls back to `subprocess` with a timeout if Docker is unavailable, with an explicit log warning about weaker isolation. |
-| **Checkpointing** | SQLite-backed `SqliteSaver` | Every graph step is persisted. Interrupted runs resume from the last checkpoint using `--resume <thread_id>`. Postgres option in `docker-compose.yml` for production. |
-| **Provider resilience** | Groq → OpenAI → OpenRouter fallback chain | Each LLM call is wrapped with LangChain's `.with_fallbacks()`. Only the keys you set are wired in — no silent degradation from unconfigured fallbacks. |
-| **Cost-aware model routing** | Separate models per role with env-var overrides | Researcher uses cheaper models (e.g. Llama 3.1 8B); Coder uses more capable ones (e.g. Llama 3.3 70B). Configurable via `CODER_MODEL_GROQ`, `RESEARCHER_MODEL_OPENAI`, etc. |
-
----
-
-## Quick Start
-
-### Prerequisites
-
-- Python 3.11+
-- Docker (optional — enables sandboxed execution; falls back to subprocess without it)
-
-### Setup
-
-Clone the repo, create a virtual environment, install dependencies, and configure your API keys:
+You need Python 3.11+. Docker is optional; without it, code runs in a subprocess with
+a timeout.
 
 **macOS / Linux:**
 
@@ -83,7 +79,7 @@ cd research2code
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env   # then edit .env with your API keys
+cp .env.example .env   # then add your API keys
 ```
 
 **Windows (Command Prompt / PowerShell):**
@@ -94,7 +90,7 @@ cd research2code
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-copy .env.example .env   :: then edit .env with your API keys
+copy .env.example .env   :: then add your API keys
 ```
 
 **Windows (Git Bash / MSYS2):**
@@ -105,25 +101,18 @@ cd research2code
 python -m venv .venv
 source .venv/Scripts/activate
 pip install -r requirements.txt
-cp .env.example .env   # then edit .env with your API keys
+cp .env.example .env   # then add your API keys
 ```
 
-Only `GROQ_API_KEY` is required. The system falls back to OpenAI (if `OPENAI_API_KEY` is set) or OpenRouter (if `OPENROUTER_API_KEY` is set) when Groq rate-limits or errors.
+Only `GROQ_API_KEY` is required. If Groq rate-limits or fails, it falls back to OpenAI
+(if `OPENAI_API_KEY` is set) or OpenRouter (if `OPENROUTER_API_KEY` is set).
 
 ### Run
 
-**CLI:**
-
 ```bash
 python run_cli.py "Implement an LRU cache and write tests for it"
-# Resume an interrupted run:
-python run_cli.py --resume <thread_id>
-```
-
-**Streamlit UI:**
-
-```bash
-streamlit run frontend/app.py
+python run_cli.py --resume <thread_id>     # continue an interrupted run
+streamlit run frontend/app.py              # or use the UI
 ```
 
 ### Test
@@ -132,40 +121,38 @@ streamlit run frontend/app.py
 pytest tests/ -v
 ```
 
-No API keys required — the routing logic and sandbox executor run fully offline.
+The tests need no API keys: the routing logic and the sandbox run fully offline.
 
----
-
-## Benchmarking
+## Benchmark
 
 ```bash
 python scripts/run_benchmark.py          # all 5 tasks
 python scripts/run_benchmark.py --quick  # first 3 tasks
 ```
 
-Output: raw results in `reports/benchmark_results.json` and a formatted markdown report. Metrics: test pass/fail per task, iteration count, token consumption (input/output/total), wall-clock duration, approval outcome.
+It writes raw results to `reports/benchmark_results.json` and a markdown report, with
+pass/fail, iterations, tokens, time and the approval outcome for each task.
 
----
+My last run was the quick set of 3 tasks (Fibonacci, an LRU cache, a rate limiter). All
+3 passed their tests; the rate limiter needed one retry. They used 900–1,800 tokens and
+13–21 seconds each. Web search was stubbed in that run (no Tavily key), so it tested the
+code–test–retry loop, not the research step.
 
 ## CI
 
-The `.github/workflows/ci.yml` workflow runs on every push and PR:
-
-- **Import check** — verifies the module graph resolves
-- **Unit tests** — `pytest tests/ -v` (offline, no API keys)
-- **Graph compilation** — verifies the state machine compiles
-
-All three checks require zero credentials, so external contributors can validate changes without configuration.
-
----
+`.github/workflows/ci.yml` runs on every push and pull request: an import check, the
+unit tests (offline) and a check that the graph compiles. None of them need
+credentials, so anyone can run them.
 
 ## Limitations
 
-- No A2A protocol support — agents communicate with MCP tool servers only, not with other agent systems
-- No persistent package cache in the Docker sandbox — `pip install` runs fresh on every execution (mitigated: persistent pip cache via volume mount `$AGENT_PIP_CACHE_DIR`, custom image via `$AGENT_SANDBOX_IMAGE`)
-- Token tracking uses per-model pricing table (`tools/token_tracker.py`) with dollar-cost calculation in final report
-
----
+- The agents talk only to MCP tool servers, not to other agent systems (no A2A).
+- The Docker sandbox installs packages fresh on each run. A pip cache volume
+  (`$AGENT_PIP_CACHE_DIR`) and a custom image (`$AGENT_SANDBOX_IMAGE`) reduce this.
+- Token costs come from a per-model price table (`tools/token_tracker.py`), shown in
+  dollars in the final report.
+- The benchmark is small (5 tasks) and simple; it shows the loop works, not how well it
+  handles hard tasks.
 
 ## License
 
